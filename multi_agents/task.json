@@ -1,18 +1,18 @@
 {
-  "query": "Is AI in a hype cycle?",
+  "query": "Analyze the integration and application of Neo4j, GraphRAG, and Triplex for knowledge graph construction and instruction dataset creation in emerging fields or poorly understood domains. Include the most recent synthetic data training methods used by Meta in their Llama 3.1 papers, the Microsoft Phi model papers and their dataset generation techniques, as well as Magpie and Auto Evol-Instruct. Focus on how these tools and methods can be combined to enhance graph database technologies, ontology design, and techniques for generating high-quality instruction-following datasets. Use huggingface.co, arxiv.org, github.com, medium.com, hackernews, https://www.sciphi.ai/blog/triplex, https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/, and relevant papers from Meta and Microsoft as your sources. Only refer to information from March 2024.",
   "max_sections": 3,
   "publish_formats": {
-    "markdown": true,
-    "pdf": true,
-    "docx": true
+    "markdown": true
   },
-  "include_human_feedback": true,
-  "follow_guidelines": false,
+  "follow_guidelines": true,
   "model": "gpt-4o",
   "guidelines": [
     "The report MUST be written in APA format",
-    "Each sub section MUST include supporting sources using hyperlinks. If none exist, erase the sub section or rewrite it to be a part of the previous section",
-    "The report MUST be written in spanish"
+    "Each section must discuss at least one specific feature or application of Neo4j, GraphRAG, Triplex, or the instruction technologies (Llama 3.1, Phi, Magpie, Auto Evol-Instruct) in the context of knowledge graph construction or instruction dataset creation, providing a brief description of how it's used",
+    "For each tool or method, specify its key methodologies, features, and how it integrates with or complements the other tools in the stack. Include direct links to relevant documentation, repositories, or papers",
+    "Discuss the synthetic data training methods used in the Llama 3.1 and Phi models, highlighting any innovations or unique approaches",
+    "Compare and contrast the dataset generation techniques used in Magpie, Auto Evol-Instruct, and the Microsoft Phi models",
+    "You MUST cite your sources accurately, including the specified blog posts, research papers, and any other relevant sources used"
   ],
   "verbose": true
 }
