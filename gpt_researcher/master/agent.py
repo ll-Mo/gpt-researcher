@@ -1,4 +1,5 @@
 import asyncio
+import random
 import time
 
 from typing import Set
@@ -58,12 +59,10 @@ class GPTResearcher:
         self.report_prompt: str = get_prompt_by_report_type(
             self.report_type
         )  # this validates the report type
-        self.report_source: str = report_source
         self.research_costs: float = 0.0
         self.cfg = Config(config_path)
-        self.retriever = get_retriever(self.headers.get("retriever")) or get_retriever(
-            self.cfg.retriever
-        ) or get_default_retriever()
+        self.report_source: str = self.cfg.report_source or report_source
+        self.retrievers = get_retrievers(self.headers, self.cfg)
         self.context = context
         self.source_urls = source_urls
         self.documents = documents
@@ -127,6 +126,13 @@ class GPTResearcher:
         elif self.report_source == ReportSource.Local.value:
             document_data = await DocumentLoader(self.cfg.doc_path).load()
             self.context = await self.__get_context_by_search(self.query, document_data)
+
+        # Hybrid search including both local documents and web sources
+        elif self.report_source == ReportSource.Hybrid.value:
+            document_data = await DocumentLoader(self.cfg.doc_path).load()
+            docs_context = await self.__get_context_by_search(self.query, document_data)
+            web_context = await self.__get_context_by_search(self.query)
+            self.context = f"Context from local documents: {docs_context}\n\nContext from web sources: {web_context}"
 
         elif self.report_source == ReportSource.LangChainDocuments.value:
             langchain_documents_data = await LangChainDocumentLoader(
@@ -244,7 +250,6 @@ class GPTResearcher:
             parent_query=self.parent_query,
             report_type=self.report_type,
             cost_callback=self.add_costs,
-            openai_api_key=self.headers.get("openai_api_key"),
         )
 
         # If this is not part of a sub researcher, add original query to research for better results
@@ -331,35 +336,48 @@ class GPTResearcher:
 
     async def __scrape_data_by_query(self, sub_query):
         """
-        Runs a sub-query
+        Runs a sub-query across multiple retrievers and scrapes the resulting URLs.
+
         Args:
-            sub_query:
+            sub_query (str): The sub-query to search for.
 
         Returns:
-            Summary
+            list: A list of scraped content results.
         """
-        # Get Urls
-        retriever = self.retriever(sub_query)
-        search_results = await asyncio.to_thread(
-            retriever.search, max_results=self.cfg.max_search_results_per_query
-        )
-        new_search_urls = await self.__get_new_urls(
-            [url.get("href") for url in search_results]
-        )
+        new_search_urls = []
 
-        # Scrape Urls
+        # Iterate through all retrievers
+        for retriever_class in self.retrievers:
+            # Instantiate the retriever with the sub-query
+            retriever = retriever_class(sub_query)
+
+            # Perform the search using the current retriever
+            search_results = await asyncio.to_thread(
+                retriever.search, max_results=self.cfg.max_search_results_per_query
+            )
+
+            # Collect new URLs from search results
+            search_urls = [url.get("href") for url in search_results]
+            new_search_urls.extend(search_urls)
+
+        # Get unique URLs
+        new_search_urls = await self.__get_new_urls(new_search_urls)
+        random.shuffle(new_search_urls)
+
+        # Log the research process if verbose mode is on
         if self.verbose:
             await stream_output(
                 "logs",
                 "researching",
-                f"🤔 Researching for relevant information...\n",
+                f"🤔 Researching for relevant information across multiple sources...\n",
                 self.websocket,
             )
 
-        # Scrape Urls
+        # Scrape the new URLs
         scraped_content_results = await asyncio.to_thread(
             scrape_urls, new_search_urls, self.cfg
         )
+
         return scraped_content_results
 
     async def __get_similar_content_by_query(self, query, pages):
